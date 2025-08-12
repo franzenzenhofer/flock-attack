@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Color Me Same - Post-Deployment Test Suite
+ * Flock Attack - Post-Deployment Test Suite
  * Comprehensive testing after deployment to ensure everything works
  */
 
@@ -29,7 +29,7 @@ const info = (msg) => log(COLORS.blue, 'ℹ️ ', msg);
 const test = (msg) => log(COLORS.cyan, '🧪', msg);
 
 // Configuration
-const SITE_URL = 'https://color-me-same.franzai.com';
+const SITE_URL = 'https://flock.franzai.com';
 const TEST_TIMEOUT = 30000;
 
 class PostDeploymentTester {

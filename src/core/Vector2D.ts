@@ -86,4 +86,12 @@ export class Vector2D {
     const dy = b.y - a.y;
     return dx * dx + dy * dy;
   }
+
+  distanceTo(v: Vector2D): number {
+    return Math.hypot(v.x - this.x, v.y - this.y);
+  }
+
+  scale(n: number): Vector2D {
+    return new Vector2D(this.x * n, this.y * n);
+  }
 }

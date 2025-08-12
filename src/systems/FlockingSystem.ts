@@ -20,7 +20,8 @@ export class FlockingSystem {
     storms: Storm[],
     goal: Vector2D | null,
     enemyGoal: Vector2D,
-    dtN: number
+    dtN: number,
+    _chaosVelocities?: Map<number, Vector2D>
   ): void {
     // Update spatial hash for performance
     const avgPerception = (

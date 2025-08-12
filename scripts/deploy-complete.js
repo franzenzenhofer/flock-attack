@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Complete deployment script for Color Me Same
+ * Complete deployment script for Flock Attack
  * Handles:
  * 1. Version bumping (already done by predeploy)
  * 2. Building (already done by predeploy)
@@ -116,8 +116,8 @@ async function deploy() {
     console.log(`
 📊 Deployment Summary:
   📦 Version: v${version}
-  🌐 Live at: https://color-me-same.franzai.com
-  🐙 GitHub: https://github.com/franzenzenhofer/color-me-same
+  🌐 Live at: https://flock.franzai.com
+  🐙 GitHub: https://github.com/franzenzenhofer/flock-attack
   🏷️  Tag: v${version}
   
 🎮 The game is now live and ready to play!

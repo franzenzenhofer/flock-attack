@@ -9,6 +9,10 @@ export class CanvasRenderer {
   private width: number;
   private height: number;
   private dpr: number;
+  
+  getContext(): CanvasRenderingContext2D {
+    return this.ctx;
+  }
 
   constructor(
     private canvas: HTMLCanvasElement

@@ -1,11 +1,14 @@
+import { Vector2D } from './Vector2D';
 import { Boid } from '../entities/Boid';
 import { Base } from '../entities/Base';
 import { Dot, DotState } from '../entities/Dot';
 import { Storm } from '../entities/Storm';
 import { FlockingSystem } from '../systems/FlockingSystem';
 import { AIController } from '../systems/AIController';
-import { InputSystem } from '../systems/InputSystem';
+import { HammerInputSystem } from '../systems/HammerInput';
 import { CanvasRenderer } from '../rendering/CanvasRenderer';
+import { ChaosEvent } from '../systems/ChaosEvent';
+import { VisualFeedbackSystem } from '../systems/VisualFeedback';
 
 export class Game {
   private width: number;
@@ -17,13 +20,16 @@ export class Game {
   
   private flockingSystem: FlockingSystem;
   private aiController: AIController;
-  private inputSystem: InputSystem;
+  private inputSystem: HammerInputSystem;
   private renderer: CanvasRenderer;
+  private chaosEvent: ChaosEvent;
+  private visualFeedback: VisualFeedbackSystem;
   
   private paused: boolean = false;
   private lastTime: number = 0;
   private cycleTime: number = 0;
   private cycleDuration: number = 46; // seconds
+  private noInputTime: number = 0;
   
   private boidIdCounter: number = 0;
 
@@ -33,8 +39,10 @@ export class Game {
     
     // Initialize systems
     this.renderer = new CanvasRenderer(canvas);
-    this.inputSystem = new InputSystem(canvas, this.width, this.height);
+    this.visualFeedback = new VisualFeedbackSystem(canvas);
+    this.inputSystem = new HammerInputSystem(canvas, this.width, this.height, this.visualFeedback);
     this.flockingSystem = new FlockingSystem();
+    this.chaosEvent = new ChaosEvent();
     
     // Setup game entities
     this.initializeBases();
@@ -45,6 +53,7 @@ export class Game {
     
     // Setup input handlers
     this.inputSystem.onDoubleTap(() => this.togglePause());
+    this.inputSystem.onDistribution(() => this.triggerDistribution());
     
     // Handle resize
     window.addEventListener('resize', () => this.handleResize(), { passive: true });
@@ -132,6 +141,18 @@ export class Game {
   private togglePause(): void {
     this.paused = !this.paused;
   }
+  
+  private triggerDistribution(): void {
+    // Scatter all boids in random directions
+    for (const boid of this.boids) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 5 + Math.random() * 5;
+      boid.vel.set(Math.cos(angle) * speed, Math.sin(angle) * speed);
+    }
+    
+    // Visual feedback at center
+    this.visualFeedback.addExplosionFeedback(this.width / 2, this.height / 2);
+  }
 
   private gameLoop = (): void => {
     const now = performance.now();
@@ -152,6 +173,9 @@ export class Game {
   };
 
   private update(dtN: number, dtS: number): void {
+    // Update visual feedback
+    this.visualFeedback.update(dtS);
+    
     // Update cycle timer
     this.cycleTime += dtS;
     if (this.cycleTime >= this.cycleDuration) {
@@ -170,15 +194,72 @@ export class Game {
       this.height
     );
     
+    // Track no-input time
+    if (this.inputSystem.isActive()) {
+      this.noInputTime = 0;
+    } else {
+      this.noInputTime += dtS;
+    }
+    
+    // Update chaos event
+    this.chaosEvent.update(dtS, this.noInputTime, this.boids, this.width, this.height);
+    
+    // Get player goal - either from waypoints, input, or auto-AI
+    let playerGoal = this.inputSystem.getGoal();
+    const currentTime = performance.now() / 1000;
+    const waypointSystem = this.inputSystem.getWaypointSystem();
+    
+    // Check for waypoints first
+    if (waypointSystem.hasWaypoints() && !this.chaosEvent.isChaosModeActive()) {
+      const playerBoids = this.boids.filter(b => b.team === 0);
+      if (playerBoids.length > 0) {
+        // Get waypoint for center of swarm
+        const swarmCenter = playerBoids.reduce((acc, b) => {
+          acc.x += b.pos.x;
+          acc.y += b.pos.y;
+          return acc;
+        }, new Vector2D(0, 0));
+        swarmCenter.div(playerBoids.length);
+        
+        const waypoint = waypointSystem.getNextWaypoint(0, swarmCenter);
+        if (waypoint) {
+          playerGoal = waypoint.position;
+        }
+      }
+    } else if (!this.chaosEvent.isChaosModeActive() && this.inputSystem.shouldUseAutoAI(currentTime)) {
+      const playerBoids = this.boids.filter(b => b.team === 0);
+      const enemyBoids = this.boids.filter(b => b.team === 1);
+      
+      playerGoal = this.inputSystem.getAutoAI().update(
+        dtS,
+        playerBoids,
+        enemyBoids,
+        this.bases,
+        this.dots,
+        this.storms,
+        this.width,
+        this.height
+      );
+    }
+    
     // Update flocking system
+    const chaosVelocities = this.chaosEvent.isChaosModeActive() 
+      ? new Map<number, Vector2D>(
+          this.boids
+            .map(b => [b.id, this.chaosEvent.getChaosVelocity(b.id)] as [number, Vector2D | null])
+            .filter((entry): entry is [number, Vector2D] => entry[1] !== null)
+        )
+      : undefined;
+    
     this.flockingSystem.update(
       this.boids,
       this.bases,
       this.dots,
       this.storms,
-      this.inputSystem.getGoal(),
+      this.chaosEvent.isChaosModeActive() ? null : playerGoal,
       this.aiController.getTarget(),
-      dtN
+      dtN,
+      chaosVelocities
     );
     
     // Update boids physics
@@ -244,6 +325,12 @@ export class Game {
     this.renderer.drawStorms(this.storms);
     this.renderer.drawDots(this.dots);
     this.renderer.drawBoids(this.boids, this.bases);
+    
+    // Draw visual feedback on top
+    const ctx = this.renderer.getContext();
+    if (ctx) {
+      this.visualFeedback.render(ctx);
+    }
   }
 
   public levelUpBase(team: 0 | 1): void {
