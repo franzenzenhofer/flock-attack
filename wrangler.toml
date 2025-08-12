@@ -1,0 +1,17 @@
+name = "flock-attack"
+main = "_worker.js"
+compatibility_date = "2025-07-26"
+
+# Static assets configuration
+[assets]
+directory = "./dist"
+
+# Routes
+[[routes]]
+pattern = "flock.franzai.com/*"
+zone_name = "franzai.com"
+
+# Dev configuration
+[dev]
+port = 8787
+local_protocol = "http"
