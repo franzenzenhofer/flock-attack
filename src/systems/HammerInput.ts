@@ -75,7 +75,7 @@ export class HammerInputSystem {
     });
     
     // PAN - Continuous movement
-    this.hammer.on('panstart', (e) => {
+    this.hammer.on('panstart', (_e) => {
       this.active = true;
       this.lastInputTime = performance.now() / 1000;
     });
@@ -128,7 +128,7 @@ export class HammerInputSystem {
     });
     
     // Handle hold progress
-    let pressTimer: any;
+    const pressTimer: number | null = null;
     this.hammer.on('pressup', () => {
       if (pressTimer) {
         clearInterval(pressTimer);

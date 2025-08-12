@@ -1,6 +1,6 @@
 {
   "name": "flock-attack",
-  "version": "1.8.0",
+  "version": "1.13.0",
   "description": "Zero-UI boid war game - control your swarm with a single touch",
   "type": "module",
   "scripts": {

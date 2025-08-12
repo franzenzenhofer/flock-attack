@@ -10,20 +10,15 @@ export interface VisualEffect {
   color: string;
   lifetime: number;
   elapsed: number;
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 export class VisualFeedbackSystem {
   private effects: VisualEffect[] = [];
   private nextId: number = 0;
-  private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D;
   
-  constructor(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Could not get 2D context');
-    this.ctx = ctx;
+  constructor(_canvas: HTMLCanvasElement) {
+    // Canvas is passed but not stored as we get context from renderer
   }
   
   // TAP - Creates expanding ripple
@@ -182,11 +177,12 @@ export class VisualFeedbackSystem {
         case 'ripple':
         case 'pulse':
         case 'trail':
-        case 'explosion':
+        case 'explosion': {
           const t = effect.elapsed / effect.lifetime;
           effect.radius = effect.radius + (effect.maxRadius - effect.radius) * t;
           effect.opacity = (1 - t) * 0.8;
           break;
+        }
           
         case 'waypoint':
           // Pulsing effect
@@ -240,7 +236,7 @@ export class VisualFeedbackSystem {
           ctx.stroke();
           
           // Progress arc
-          if (effect.data?.progress) {
+          if (effect.data?.progress && typeof effect.data.progress === 'number') {
             ctx.strokeStyle = '#ffff00';
             ctx.lineWidth = 4;
             ctx.beginPath();
@@ -266,7 +262,7 @@ export class VisualFeedbackSystem {
           ctx.stroke();
           
           // Draw order number
-          if (effect.data?.order !== undefined) {
+          if (effect.data?.order !== undefined && typeof effect.data.order === 'number') {
             ctx.fillStyle = '#000000';
             ctx.font = 'bold 20px monospace';
             ctx.textAlign = 'center';
@@ -290,7 +286,7 @@ export class VisualFeedbackSystem {
           ctx.setLineDash([]);
           
           // Scale text
-          if (effect.data?.scale) {
+          if (effect.data?.scale && typeof effect.data.scale === 'number') {
             ctx.fillStyle = effect.color;
             ctx.font = 'bold 16px monospace';
             ctx.textAlign = 'center';
